@@ -4,7 +4,7 @@
     <div v-if="!isAuthenticated" class="login-screen">
       <div class="login-card">
         <div class="login-logo">🔐</div>
-        <h1 class="login-title">Painel Admin</h1>
+        <h1 class="login-title">Well Builders</h1>
         <p class="login-subtitle">Digite a senha para acessar</p>
         <form @submit.prevent="login" class="login-form">
           <div class="input-group">

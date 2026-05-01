@@ -41,7 +41,7 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Outfit', sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;

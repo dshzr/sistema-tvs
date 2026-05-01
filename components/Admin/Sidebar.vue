@@ -2,7 +2,7 @@
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">📺</div>
-      <span class="sidebar-title">TV Ads</span>
+      <span class="sidebar-title">Well Builders</span>
     </div>
     <nav class="sidebar-nav">
       <button :class="['nav-item', { active: activeSection === 'announcements' }]" @click="$emit('change-section', 'announcements')">
