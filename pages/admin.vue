@@ -1,62 +1,76 @@
 <template>
-  <div>
-    <!-- Login Screen -->
-    <div v-if="!isAuthenticated" class="login-screen">
-      <div class="login-card">
-        <div class="login-logo">🔐</div>
-        <h1 class="login-title">Well Builders</h1>
-        <p class="login-subtitle">Digite a senha para acessar</p>
+  <div class="apple-admin">
+    <!-- macOS Style Login -->
+    <div v-if="!isAuthenticated" class="login-wrapper">
+      <div class="login-bg"></div>
+      <div class="login-container">
+        <div class="user-avatar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </div>
+        <h1 class="login-name">Well Builders</h1>
         <form @submit.prevent="login" class="login-form">
-          <div class="input-group">
-            <input v-model="password" type="password" placeholder="Senha de acesso" required />
+          <div class="input-field">
+            <input 
+              v-model="password" 
+              type="password" 
+              placeholder="Senha" 
+              required 
+              autofocus
+            />
+            <button type="submit" class="submit-arrow">→</button>
           </div>
-          <button type="submit" class="btn btn-primary btn-full">Entrar</button>
-          <p class="login-error">{{ errorMsg }}</p>
+          <p v-if="errorMsg" class="login-error">{{ errorMsg }}</p>
         </form>
       </div>
     </div>
 
-    <!-- Dashboard -->
-    <div v-else class="dashboard">
+    <!-- macOS Style Dashboard -->
+    <div v-else class="dashboard-wrapper">
       <AdminSidebar 
         :active-section="activeSection" 
         @change-section="activeSection = $event"
         @logout="logout"
       />
       
-      <main class="main-content">
-        <!-- Announcements Section -->
-        <section v-show="activeSection === 'announcements'">
-          <div class="section-header">
-            <div>
-              <h1 class="section-title">Anúncios</h1>
-              <p class="section-subtitle">Gerencie o conteúdo exibido nas TVs</p>
+      <main class="main-viewport">
+        <div class="viewport-header">
+          <h1 class="view-title">{{ activeSection === 'announcements' ? 'Anúncios' : 'Configurações' }}</h1>
+          <button 
+            v-if="activeSection === 'announcements'"
+            class="apple-btn apple-btn-primary" 
+            @click="showModal = true; editingId = null"
+          >
+            Adicionar Novo
+          </button>
+        </div>
+
+        <div class="view-content">
+          <!-- Announcements -->
+          <div v-show="activeSection === 'announcements'" class="scroll-area">
+            <div v-if="announcements.length > 0" class="apple-grid">
+              <AdminAnnouncementCard 
+                v-for="ann in announcements" 
+                :key="ann.id" 
+                :announcement="ann"
+                @toggle="toggleStatus"
+                @edit="openEdit"
+                @delete="deleteAnn"
+              />
             </div>
-            <button class="btn btn-primary" @click="showModal = true; editingId = null">
-              Novo Anúncio
-            </button>
+            <div v-else class="apple-empty">
+              <span class="empty-icon">📂</span>
+              <p>Nenhum anúncio disponível</p>
+            </div>
           </div>
 
-          <div v-if="announcements.length > 0" class="announcements-grid">
-            <AdminAnnouncementCard 
-              v-for="ann in announcements" 
-              :key="ann.id" 
-              :announcement="ann"
-              @toggle="toggleStatus"
-              @edit="openEdit"
-              @delete="deleteAnn"
-            />
+          <!-- Settings -->
+          <div v-show="activeSection === 'settings'" class="apple-settings-view">
+            <AdminSettingsForm :settings="settings" @save="saveSettings" />
           </div>
-          <div v-else class="empty-state">
-            <div class="empty-icon">📭</div>
-            <h3>Nenhum anúncio cadastrado</h3>
-          </div>
-        </section>
-
-        <!-- Settings Section -->
-        <section v-show="activeSection === 'settings'">
-          <AdminSettingsForm :settings="settings" @save="saveSettings" />
-        </section>
+        </div>
       </main>
     </div>
 
@@ -98,7 +112,7 @@ const login = async () => {
     sessionStorage.setItem('admin_auth', 'true')
     fetchData()
   } catch (err) {
-    errorMsg.value = 'Senha incorreta'
+    errorMsg.value = 'Senha Incorreta'
   }
 }
 
@@ -116,9 +130,7 @@ const fetchData = async () => {
     ])
     announcements.value = anns
     settings.value = sets
-  } catch (err) {
-    console.error(err)
-  }
+  } catch (err) { console.error(err) }
 }
 
 const toggleStatus = async (id, currentStatus) => {
@@ -129,85 +141,99 @@ const toggleStatus = async (id, currentStatus) => {
 }
 
 const deleteAnn = async (id) => {
-  if (confirm('Tem certeza que deseja excluir este anúncio?')) {
+  if (confirm('Deseja realmente remover este anúncio?')) {
     await $fetch(`/api/announcements/${id}`, { method: 'DELETE' })
     fetchData()
   }
 }
 
 const openEdit = (id) => {
-  editingId.value = id
-  showModal.value = true
+  editingId.value = id; showModal.value = true
 }
 
 const closeModal = () => {
-  showModal.value = false
-  editingId.value = null
+  showModal.value = false; editingId.value = null
 }
 
 const saveAnnouncement = async (formData) => {
   try {
     const url = editingId.value ? `/api/announcements/${editingId.value}` : '/api/announcements'
-    const method = editingId.value ? 'PUT' : 'POST'
-    await $fetch(url, { method, body: formData })
-    closeModal()
-    fetchData()
-  } catch (err) {
-    alert('Erro ao salvar anúncio')
-  }
+    await $fetch(url, { method: editingId.value ? 'PUT' : 'POST', body: formData })
+    closeModal(); fetchData()
+  } catch (err) { alert('Erro ao salvar') }
 }
 
 const saveSettings = async (newSettings) => {
   try {
-    const res = await $fetch('/api/settings', {
-      method: 'PUT',
-      body: newSettings
-    })
+    const res = await $fetch('/api/settings', { method: 'PUT', body: newSettings })
     settings.value = res.settings
-    alert('Configurações salvas!')
-  } catch (err) {
-    alert('Erro ao salvar configurações')
-  }
+    alert('Ajustes salvos com sucesso!')
+  } catch (err) { alert('Erro ao salvar') }
 }
 
 onMounted(() => {
   if (sessionStorage.getItem('admin_auth') === 'true') {
-    isAuthenticated.value = true
-    fetchData()
+    isAuthenticated.value = true; fetchData()
   }
 })
 </script>
 
 <style scoped>
-/* Resumo dos estilos base, usando var do main.css */
-.login-screen {
-  min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem;
+.apple-admin {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  font-family: 'Outfit', sans-serif;
 }
-.login-card {
-  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-xl);
-  padding: 3rem 2.5rem; width: 100%; max-width: 420px; text-align: center; backdrop-filter: blur(20px);
-}
-.login-logo { font-size: 3.5rem; margin-bottom: 1.5rem; }
-.login-title { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
-.login-error { color: var(--red); font-size: 0.85rem; margin-top: 1rem; min-height: 1.2em; }
-.input-group input {
-  width: 100%; padding: 0.85rem 1rem; background: var(--bg-input); border: 1px solid var(--border);
-  border-radius: var(--radius-md); color: var(--text-primary); margin-bottom: 1rem; outline: none;
-}
-.btn {
-  padding: 0.75rem 1.5rem; border: none; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: var(--transition); color: white;
-}
-.btn-primary { background: linear-gradient(135deg, var(--accent), #8b5cf6); }
-.btn-full { width: 100%; }
 
-.dashboard { display: flex; min-height: 100vh; }
-.main-content { flex: 1; margin-left: 260px; padding: 2rem; }
-.section-header { display: flex; justify-content: space-between; margin-bottom: 2rem; }
-.announcements-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
-.empty-state { text-align: center; padding: 4rem; color: var(--text-secondary); }
-.empty-icon { font-size: 4rem; margin-bottom: 1.5rem; opacity: 0.5; }
+/* Login Style */
+.login-wrapper {
+  height: 100vh; display: flex; align-items: center; justify-content: center; position: relative;
+}
+.login-bg {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: radial-gradient(circle at center, #2c2c2e 0%, #000000 100%);
+  z-index: -1;
+}
+.login-container { text-align: center; width: 100%; max-width: 300px; animation: fadeIn 1s ease; }
+.user-avatar {
+  width: 90px; height: 90px; background: rgba(255,255,255,0.1); 
+  border-radius: 50%; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; color: #fff;
+}
+.login-name { font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem; color: #fff; }
+.input-field {
+  position: relative; background: rgba(255,255,255,0.1); border-radius: 100px; padding: 2px;
+  border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(20px);
+}
+.input-field input {
+  width: 100%; background: transparent; border: none; padding: 0.75rem 1.25rem; color: #fff; outline: none; text-align: center;
+}
+.submit-arrow {
+  position: absolute; right: 4px; top: 4px; bottom: 4px; width: 32px; 
+  background: rgba(255,255,255,0.2); border: none; border-radius: 50%; color: #fff; cursor: pointer;
+}
+.login-error { color: var(--system-red); font-size: 0.8rem; margin-top: 1rem; }
+
+/* Dashboard Style */
+.dashboard-wrapper { display: flex; min-height: 100vh; }
+.main-viewport { flex: 1; margin-left: 260px; padding: 2.5rem 3rem; background: #000; }
+.viewport-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; }
+.view-title { font-size: 2rem; font-weight: 700; color: #fff; letter-spacing: -0.03em; }
+
+.apple-btn {
+  padding: 0.6rem 1.2rem; border-radius: 10px; font-weight: 500; border: none; cursor: pointer; transition: all 0.2s;
+}
+.apple-btn-primary { background: #007aff; color: #fff; }
+.apple-btn-primary:hover { background: #0a84ff; }
+
+.apple-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+.apple-empty { text-align: center; padding: 5rem; color: rgba(255,255,255,0.3); }
+.empty-icon { font-size: 3rem; margin-bottom: 1rem; display: block; }
+
+.apple-settings-view { max-width: 700px; }
 
 @media (max-width: 768px) {
-  .main-content { margin-left: 0; }
+  .main-viewport { margin-left: 0; padding: 1.5rem; }
 }
+
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 </style>

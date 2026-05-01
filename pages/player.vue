@@ -1,8 +1,5 @@
 <template>
   <div v-if="announcements.length > 0" :class="['player', `transition-${settings.transition}`]">
-    <!-- Grainy Texture -->
-    <div class="grain-overlay"></div>
-
     <div class="slides-container">
       <div 
         v-for="(a, i) in announcements" 
@@ -22,38 +19,40 @@
       </div>
     </div>
 
-    <!-- Main Footer -->
+    <!-- Apple Style Footer -->
     <footer class="player-footer">
+      <div class="footer-blur-bg"></div>
       <div class="footer-content">
         <!-- Branding -->
         <div class="footer-brand">
-          <div class="brand-dot"></div>
+          <div class="brand-logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 17L12 22L22 17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 12L12 17L22 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
           <span class="brand-text">Well Builders</span>
         </div>
 
-        <!-- Center: Progress Bar & Counter -->
+        <!-- Center: Status & Progress -->
         <div class="footer-center">
-          <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: `${progress}%` }"></div>
-          </div>
-          <div class="slide-counter">
-            <span class="current">{{ String(currentIndex + 1).padStart(2, '0') }}</span>
-            <span class="sep">/</span>
-            <span class="total">{{ String(announcements.length).padStart(2, '0') }}</span>
+          <div class="progress-wrapper">
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: `${progress}%` }"></div>
+            </div>
           </div>
         </div>
 
-        <!-- Right: Info (Weather & Clock) -->
-        <div class="footer-info">
-          <div class="weather-brief">
-            <span class="w-temp">{{ weather.temp }}°</span>
+        <!-- Right: Time & Weather -->
+        <div class="footer-widgets">
+          <div class="widget weather">
             <span class="w-icon">{{ weather.icon }}</span>
+            <span class="w-temp">{{ weather.temp }}°</span>
           </div>
-          <div class="footer-divider"></div>
-          <div class="footer-clock">
-            <span class="f-hours">{{ time.hours }}</span>
-            <span class="f-sep">:</span>
-            <span class="f-mins">{{ time.minutes }}</span>
+          <div class="widget-divider"></div>
+          <div class="widget clock">
+            <span class="c-time">{{ time.hours }}<span class="c-sep">:</span>{{ time.minutes }}</span>
           </div>
         </div>
       </div>
@@ -61,11 +60,15 @@
   </div>
 
   <div v-else class="no-content">
-    <div class="grain-overlay"></div>
-    <div class="no-content-inner">
-      <div class="no-content-icon">📺</div>
-      <h1 class="editorial-title">Well Builders</h1>
-      <p class="editorial-p">Aguardando conteúdo para exibição.</p>
+    <div class="no-content-card">
+      <div class="no-content-icon">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+          <polyline points="17 2 12 7 7 2"></polyline>
+        </svg>
+      </div>
+      <h1 class="apple-title">Well Builders</h1>
+      <p class="apple-p">Aguardando conteúdo para transmissão.</p>
     </div>
   </div>
 </template>
@@ -98,23 +101,16 @@ const updateClock = () => {
   const now = new Date()
   time.hours = String(now.getHours()).padStart(2, '0')
   time.minutes = String(now.getMinutes()).padStart(2, '0')
-  
-  const options = { weekday: 'long', day: 'numeric', month: 'long' }
-  const formatter = new Intl.DateTimeFormat('pt-BR', options)
-  const parts = formatter.formatToParts(now)
-  
-  date.dayName = parts.find(p => p.type === 'weekday').value
-  date.fullDate = `${parts.find(p => p.type === 'day').value} de ${parts.find(p => p.type === 'month').value}`
 }
 
 const updateWeather = () => {
   const hour = new Date().getHours()
   if (hour > 18 || hour < 6) {
-    weather.icon = '🌙'; weather.description = 'Noite Estrelada'; weather.temp = 19
+    weather.icon = '🌙'; weather.temp = 19
   } else if (hour > 12 && hour < 16) {
-    weather.icon = '☀️'; weather.description = 'Ensolarado'; weather.temp = 28
+    weather.icon = '☀️'; weather.temp = 28
   } else {
-    weather.icon = '🌤️'; weather.description = 'Parcialmente Nublado'; weather.temp = 24
+    weather.icon = '🌤️'; weather.temp = 24
   }
 }
 
@@ -173,12 +169,8 @@ const fetchData = async () => {
     ])
     settings.value = fetchedSettings
     const activeAnns = fetchedAnnouncements.filter(a => a.active)
-    const oldIds = announcements.value.map(a => a.id).join(',')
-    const newIds = activeAnns.map(a => a.id).join(',')
-    if (oldIds !== newIds && activeAnns.length > 0) {
+    if (activeAnns.length !== announcements.value.length) {
       announcements.value = activeAnns; currentIndex.value = 0; showSlide(0)
-    } else if (activeAnns.length === 0) {
-      announcements.value = []
     }
   } catch (err) { console.error(err) }
 }
@@ -186,15 +178,8 @@ const fetchData = async () => {
 onMounted(() => {
   updateClock(); updateWeather()
   setInterval(updateClock, 1000)
-  setInterval(updateWeather, 3600000)
   fetchData().then(() => { if (announcements.value.length > 0) showSlide(0) })
   pollTimer = setInterval(fetchData, 15000)
-  let cursorTimer
-  window.addEventListener('mousemove', () => {
-    document.body.style.cursor = 'default'
-    clearTimeout(cursorTimer)
-    cursorTimer = setTimeout(() => { document.body.style.cursor = 'none' }, 3000)
-  })
 })
 
 onUnmounted(() => {
@@ -210,29 +195,19 @@ onUnmounted(() => {
   overflow: hidden;
   background: #000;
   cursor: none;
-}
-
-.grain-overlay {
-  position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
-  z-index: 50;
-  pointer-events: none;
-  opacity: 0.05;
-  background-image: url('https://grainy-gradients.vercel.app/noise.svg');
+  font-family: 'Outfit', sans-serif;
 }
 
 .slides-container {
   position: relative;
   width: 100%;
-  height: calc(100% - 100px); /* Leave space for footer */
-  background: #000;
+  height: calc(100% - 90px);
 }
 
 .slide {
   position: absolute;
   top: 0; left: 0; width: 100%; height: 100%;
   opacity: 0;
-  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -243,54 +218,42 @@ onUnmounted(() => {
 .slide img, .slide video {
   width: 100%;
   height: 100%;
-  object-fit: contain; /* Maintain aspect ratio */
+  object-fit: contain;
 }
 
-/* Individual Slide Title Overlay */
-.slide-info {
-  position: absolute;
-  top: 3rem;
-  left: 3rem;
-  z-index: 10;
-  max-width: 50%;
-}
-
-.slide-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 3rem;
-  color: #fff;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
-  margin: 0;
-  line-height: 1.1;
-}
-
-/* Transitions */
-.transition-fade .slide { transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1); }
+/* Apple Transitions */
+.transition-fade .slide { transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1); }
 .transition-slide .slide {
-  transition: opacity 1s, transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease;
   transform: translateX(100%);
 }
 .transition-slide .slide.active { transform: translateX(0); }
-.transition-slide .slide.prev { transform: translateX(-100%); opacity: 0; }
 
-/* Premium Footer */
+/* Apple Style Footer */
 .player-footer {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 100px;
-  background: rgba(10, 10, 20, 0.85);
-  backdrop-filter: blur(25px) saturate(180%);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  bottom: 1.5rem;
+  left: 1.5rem;
+  right: 1.5rem;
+  height: 80px;
+  border-radius: 24px;
+  overflow: hidden;
   z-index: 100;
-  display: flex;
-  align-items: center;
-  padding: 0 3rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.footer-blur-bg {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(28, 28, 30, 0.7);
+  backdrop-filter: blur(30px) saturate(180%);
+  z-index: -1;
 }
 
 .footer-content {
-  width: 100%;
+  height: 100%;
+  padding: 0 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -299,91 +262,92 @@ onUnmounted(() => {
 .footer-brand {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
-}
-
-.brand-dot {
-  width: 12px; height: 12px;
-  background: #6366f1;
-  border-radius: 50%;
-  box-shadow: 0 0 15px rgba(99, 102, 241, 0.8);
+  gap: 1rem;
 }
 
 .brand-text {
-  font-family: 'Outfit', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  font-size: 0.85rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+  color: #fff;
 }
 
 .footer-center {
-  flex: 0 1 40%;
+  flex: 0 1 450px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.8rem;
 }
 
-.progress-bar {
-  width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #6366f1, #06b6d4);
-  box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
-}
-
-.slide-counter {
-  font-family: 'Outfit', sans-serif;
-  font-size: 0.8rem;
-  letter-spacing: 0.1em;
-}
-
-.slide-counter .current { color: #fff; font-weight: 700; }
-.slide-counter .sep { color: rgba(255, 255, 255, 0.2); margin: 0 4px; }
-.slide-counter .total { color: rgba(255, 255, 255, 0.4); }
-
-.footer-info {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.weather-brief {
+.status-indicator {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.w-temp {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.8rem;
-  color: #fff;
+.status-dot {
+  width: 6px; height: 6px;
+  background: #34c759;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(52, 199, 89, 0.5);
 }
 
+.status-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #fff;
+  transition: width 0.1s linear;
+}
+
+.slide-info {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-variant-numeric: tabular-nums;
+}
+
+.slide-info .current { color: #fff; font-weight: 600; margin-right: 4px; }
+
+.footer-widgets {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.widget { display: flex; align-items: center; gap: 0.6rem; }
+
+.w-temp { font-size: 1.4rem; font-weight: 500; color: #fff; }
 .w-icon { font-size: 1.2rem; }
 
-.footer-divider {
-  width: 1px; height: 30px;
-  background: rgba(255, 255, 255, 0.15);
+.widget-divider {
+  width: 1px; height: 24px;
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.footer-clock {
-  font-family: 'Playfair Display', serif;
-  font-size: 2.5rem;
+.c-time {
+  font-size: 1.8rem;
+  font-weight: 600;
   color: #fff;
-  line-height: 1;
+  letter-spacing: -0.02em;
 }
 
-.f-sep {
-  opacity: 0.3;
+.c-sep {
+  opacity: 0.4;
   animation: blink 1s infinite;
 }
 
@@ -392,32 +356,25 @@ onUnmounted(() => {
   50% { opacity: 1; }
 }
 
-/* Transitions */
-.fade-slide-enter-active { transition: all 0.8s ease-out 0.4s; }
-.fade-slide-enter-from { opacity: 0; transform: translateY(20px); }
-
-/* No Content */
+/* No Content Apple Card */
 .no-content {
   height: 100vh;
+  background: #000;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #050505;
+}
+
+.no-content-card {
+  background: #1c1c1e;
+  padding: 4rem;
+  border-radius: 40px;
   text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5);
 }
 
-.editorial-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 3.5rem;
-  color: #fff;
-  margin-bottom: 1rem;
-}
-
-.editorial-p {
-  font-family: 'Outfit', sans-serif;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  font-size: 0.9rem;
-  color: #6366f1;
-}
+.no-content-icon { color: #007aff; margin-bottom: 2rem; }
+.apple-title { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+.apple-p { color: rgba(255, 255, 255, 0.5); font-size: 1.1rem; }
 </style>
