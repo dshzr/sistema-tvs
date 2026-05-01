@@ -15,5 +15,12 @@ export default defineNuxtConfig({
       ]
     }
   },
-  css: ['~/assets/css/main.css']
+  css: ['~/assets/css/main.css'],
+  runtimeConfig: {
+    tursoDatabaseUrl: process.env.TURSO_DATABASE_URL,
+    tursoAuthToken: process.env.TURSO_AUTH_TOKEN,
+    cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
+    cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
+  }
 })

@@ -1,74 +1,42 @@
-# Sistema de Anúncios para TV (Digital Signage)
+# Well Builders - Sistema de Anúncios para TV
 
-Um sistema moderno e robusto para gerenciamento de anúncios em TVs de condomínios, empresas ou áreas públicas. Desenvolvido com Nuxt 3 e SQLite.
+Um sistema premium e moderno para gerenciamento de sinalização digital (Digital Signage), com design inspirado na Apple e infraestrutura 100% na nuvem.
 
-## 🚀 Tecnologias Utilizadas
-
+## 🚀 Tecnologias e Cloud
 - **Framework:** [Nuxt 3](https://nuxt.com/)
-- **Linguagem:** TypeScript
-- **Banco de Dados:** SQLite
+- **Banco de Dados:** [Turso](https://turso.tech/) (SQLite na Nuvem)
+- **Armazenamento de Mídia:** [Cloudinary](https://cloudinary.com/)
 - **ORM:** [Drizzle ORM](https://orm.drizzle.team/)
-- **Estilização:** CSS Vanilla / Tailwind (conforme configurado)
-- **Ícones:** Lucide Vue Next
+- **Estilização:** CSS Premium (Apple Style)
 
-## 📋 Pré-requisitos
+## 🛠️ Configuração de Ambiente
+Crie um arquivo `.env` na raiz do projeto com as seguintes chaves:
 
-- **Node.js:** Versão 18.x ou superior
-- **NPM:** Gerenciador de pacotes padrão
+```env
+# Turso Database
+TURSO_DATABASE_URL=libsql://sua-url-aqui
+TURSO_AUTH_TOKEN=seu-token-aqui
 
-## 🛠️ Instalação e Configuração
-
-1.  **Instalar dependências:**
-    ```bash
-    npm install
-    ```
-
-2.  **Configurar o Banco de Dados (SQLite):**
-    O sistema utiliza Drizzle para gerenciar o banco. Para criar as tabelas iniciais no arquivo `sqlite.db`, execute:
-    ```bash
-    npx drizzle-kit push
-    ```
-
-3.  **Migrar dados (Opcional):**
-    Se você tiver um arquivo `data/announcements.json` antigo e quiser importar para o banco:
-    ```bash
-    npx tsx scripts/migrate-json-to-sqlite.ts
-    ```
-
-## 💻 Como Rodar
-
-Para iniciar o servidor de desenvolvimento:
-
-```bash
-npm run dev
+# Cloudinary Storage
+CLOUDINARY_CLOUD_NAME=seu-cloud-name
+CLOUDINARY_API_KEY=sua-api-key
+CLOUDINARY_API_SECRET=seu-api-secret
 ```
 
-O projeto estará disponível em `http://localhost:3000`.
+## 🚀 Como Rodar Localmente
+1. Instale as dependências: `npm install`
+2. Sincronize o banco de dados: `npx drizzle-kit push`
+3. Inicie o projeto: `npm run dev`
+
+## 🌍 Deploy na Vercel
+O projeto está configurado para deploy automático na Vercel.
+1. Conecte seu repositório no dashboard da Vercel.
+2. Adicione todas as variáveis de ambiente do seu `.env` nas configurações da Vercel (**Settings > Environment Variables**).
+3. Faça o deploy!
 
 ## 📺 Acessando o Sistema
-
-- **Painel Administrativo:** `http://localhost:3000/admin`
-  - Aqui você gerencia os anúncios (adicionar, remover, reordenar e editar duração).
-  - A senha padrão configurada é `admin123`.
-- **Player da TV:** `http://localhost:3000/player`
-  - Link que deve ser aberto nas TVs para exibição em loop.
-
-## 🗄️ Gerenciando o Banco de Dados
-
-Para visualizar os dados do banco SQLite de forma visual e fácil (Drizzle Studio):
-
-```bash
-npx drizzle-kit studio
-```
-
-## 📁 Estrutura do Projeto
-
-- `server/database/schema.ts`: Definição das tabelas do banco de dados.
-- `server/api/`: Endpoints da API para gerenciamento de anúncios e configurações.
-- `pages/`: Telas do sistema (Admin e Player).
-- `public/uploads/`: Pasta onde ficam salvos os arquivos de imagem e vídeo enviados.
-- `sqlite.db`: Arquivo do banco de dados (não deve ser deletado).
+- **Painel Administrativo:** `/admin`
+- **Player da TV:** `/player`
 
 ---
-
-Desenvolvido com ❤️ por Antigravity.
+Desenvolvido por Well Builders.

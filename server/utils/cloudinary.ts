@@ -1,16 +1,18 @@
 import { v2 as cloudinary } from 'cloudinary';
 
+const config = process.env;
+
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: config.CLOUDINARY_CLOUD_NAME,
+  api_key: config.CLOUDINARY_API_KEY,
+  api_secret: config.CLOUDINARY_API_SECRET,
 });
 
 export const uploadToCloudinary = async (file: { data: Buffer; filename: string; type: string }) => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        resource_type: 'auto', // Detects if it's image or video
+        resource_type: 'auto',
         folder: 'tv-ads',
       },
       (error, result) => {
