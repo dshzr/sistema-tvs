@@ -5,6 +5,7 @@ export const announcements = sqliteTable('announcements', {
   title: text('title').notNull(),
   type: text('type').notNull(), // 'image' | 'video'
   mediaPath: text('media_path').notNull(),
+  publicId: text('public_id'),
   duration: integer('duration').notNull().default(10),
   active: integer('active', { mode: 'boolean' }).notNull().default(true),
   order: integer('order').notNull().default(0),

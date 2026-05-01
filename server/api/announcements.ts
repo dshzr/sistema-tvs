@@ -1,9 +1,8 @@
-import fs from 'fs'
-import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { db } from '../utils/db'
 import { announcements, settings } from '../database/schema'
-import { asc, desc } from 'drizzle-orm'
+import { asc } from 'drizzle-orm'
+import { uploadToCloudinary } from '../utils/cloudinary'
 
 export default defineEventHandler(async (event) => {
   const method = event.node.req.method
@@ -28,43 +27,43 @@ export default defineEventHandler(async (event) => {
 
     const title = titleField ? titleField.data.toString() : 'Sem título'
     
-    // Get default duration from settings if not provided
     let duration = durationField ? Number(durationField.data.toString()) : null
     if (!duration) {
       const config = await db.query.settings.findFirst()
       duration = config?.defaultDuration || 10
     }
     
-    // Save file
-    const ext = path.extname(mediaField.filename || '') || (mediaField.type?.startsWith('video/') ? '.mp4' : '.jpg')
-    const fileName = `${uuidv4()}${ext}`
-    const isVideo = mediaField.type?.startsWith('video/')
-    
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true })
+    // Upload to Cloudinary
+    try {
+      const cloudinaryResult: any = await uploadToCloudinary({
+        data: mediaField.data,
+        filename: mediaField.filename || 'upload',
+        type: mediaField.type || 'image/jpeg'
+      })
+
+      // Get current max order
+      const allAnnouncements = await db.select().from(announcements)
+      const nextOrder = allAnnouncements.length
+
+      const newAnnouncement = {
+        id: uuidv4(),
+        title,
+        type: cloudinaryResult.resource_type === 'video' ? 'video' : 'image',
+        mediaPath: cloudinaryResult.secure_url,
+        publicId: cloudinaryResult.public_id,
+        duration,
+        active: true,
+        order: nextOrder,
+        createdAt: new Date().toISOString()
+      }
+
+      await db.insert(announcements).values(newAnnouncement)
+      
+      setResponseStatus(event, 201)
+      return newAnnouncement
+    } catch (error) {
+      console.error('Cloudinary upload error:', error)
+      throw createError({ statusCode: 500, statusMessage: 'Failed to upload media to Cloudinary' })
     }
-    
-    fs.writeFileSync(path.join(uploadsDir, fileName), mediaField.data)
-
-    // Get current max order
-    const allAnnouncements = await db.select().from(announcements)
-    const nextOrder = allAnnouncements.length
-
-    const newAnnouncement = {
-      id: uuidv4(),
-      title,
-      type: isVideo ? 'video' : 'image',
-      mediaPath: `/uploads/${fileName}`,
-      duration,
-      active: true,
-      order: nextOrder,
-      createdAt: new Date().toISOString()
-    }
-
-    await db.insert(announcements).values(newAnnouncement)
-    
-    setResponseStatus(event, 201)
-    return newAnnouncement
   }
 })

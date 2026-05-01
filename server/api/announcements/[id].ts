@@ -1,9 +1,7 @@
-import fs from 'fs'
-import path from 'path'
-import { v4 as uuidv4 } from 'uuid'
 import { db } from '../../utils/db'
 import { announcements } from '../../database/schema'
-import { eq } from 'drizzle-orm'
+import { eq, asc } from 'drizzle-orm'
+import { uploadToCloudinary, deleteFromCloudinary } from '../../utils/cloudinary'
 
 export default defineEventHandler(async (event) => {
   const method = event.node.req.method
@@ -19,17 +17,16 @@ export default defineEventHandler(async (event) => {
 
   // DELETE
   if (method === 'DELETE') {
-    const filePath = path.join(process.cwd(), 'public', announcement.mediaPath)
-    if (fs.existsSync(filePath)) {
-      try { fs.unlinkSync(filePath) } catch (e) {}
+    // Delete from Cloudinary if exists
+    if (announcement.publicId) {
+      try { await deleteFromCloudinary(announcement.publicId) } catch (e) { console.error('Delete error:', e) }
     }
 
     await db.delete(announcements).where(eq(announcements.id, id))
     
-    // Optional: Reorder remaining announcements? 
-    // Usually handled by the UI or reorder endpoint, but let's maintain current order integrity
+    // Reorder remaining announcements
     const remaining = await db.query.announcements.findMany({
-      orderBy: (ann, { asc }) => [asc(ann.order)]
+      orderBy: [asc(announcements.order)]
     })
     
     for (let i = 0; i < remaining.length; i++) {
@@ -56,25 +53,22 @@ export default defineEventHandler(async (event) => {
     if (durationField) updateData.duration = Number(durationField.data.toString())
     if (activeField) updateData.active = activeField.data.toString() === 'true'
 
-    if (mediaField) {
-      // Delete old file
-      const oldPath = path.join(process.cwd(), 'public', announcement.mediaPath)
-      if (fs.existsSync(oldPath)) {
-        try { fs.unlinkSync(oldPath) } catch (e) {}
+    if (mediaField && mediaField.data.length > 0) {
+      // Delete old file from Cloudinary
+      if (announcement.publicId) {
+        try { await deleteFromCloudinary(announcement.publicId) } catch (e) {}
       }
 
-      // Save new file
-      const ext = path.extname(mediaField.filename || '') || (mediaField.type?.startsWith('video/') ? '.mp4' : '.jpg')
-      const fileName = `${uuidv4()}${ext}`
-      const isVideo = mediaField.type?.startsWith('video/')
-      
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-      if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true })
-      
-      fs.writeFileSync(path.join(uploadsDir, fileName), mediaField.data)
+      // Upload new file
+      const cloudinaryResult: any = await uploadToCloudinary({
+        data: mediaField.data,
+        filename: mediaField.filename || 'upload',
+        type: mediaField.type || 'image/jpeg'
+      })
 
-      updateData.type = isVideo ? 'video' : 'image'
-      updateData.mediaPath = `/uploads/${fileName}`
+      updateData.type = cloudinaryResult.resource_type === 'video' ? 'video' : 'image'
+      updateData.mediaPath = cloudinaryResult.secure_url
+      updateData.publicId = cloudinaryResult.public_id
     }
 
     await db.update(announcements).set(updateData).where(eq(announcements.id, id))
